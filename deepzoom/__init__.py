@@ -56,6 +56,7 @@ NS_DEEPZOOM = "http://schemas.microsoft.com/deepzoom/2008"
 
 DEFAULT_RESIZE_FILTER = PIL.Image.LANCZOS
 DEFAULT_IMAGE_FORMAT = "jpg"
+MIN_IMAGE_DIMENSION = 512
 
 RESIZE_FILTERS = {
     "bilinear": PIL.Image.BILINEAR,
@@ -140,8 +141,10 @@ class DeepZoomImageDescriptor(object):
 
     def get_num_tiles(self, level):
         """Number of tiles (columns, rows)"""
-        assert 0 <= level and level < self.num_levels, "Invalid pyramid level"
+        assert 0 <= level < self.num_levels, "Invalid pyramid level"
         w, h = self.get_dimensions(level)
+        if w < MIN_IMAGE_DIMENSION and h < MIN_IMAGE_DIMENSION:
+            return 0, 0
         return (
             int(math.ceil(float(w) / self.tile_size)),
             int(math.ceil(float(h) / self.tile_size)),
@@ -432,22 +435,24 @@ class ImageCreator(object):
         # Create tiles
         image_files = _get_or_create_path(_get_files_path(destination))
         for level in range(self.descriptor.num_levels):
-            level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
-            level_image = self.get_image(level)
-            for (column, row) in self.tiles(level):
-                bounds = self.descriptor.get_tile_bounds(level, column, row)
-                tile = level_image.crop(bounds)
-                format = self.descriptor.tile_format
-                tile_path = os.path.join(level_dir, "%s_%s.%s" % (column, row, format))
-                if self.descriptor.tile_format == "jpg":
-                    jpeg_quality = int(self.image_quality * 100)
-                    tile.save(tile_path, "JPEG", quality=jpeg_quality)
-                elif self.descriptor.tile_format == "webp":
-                    quality = int(self.image_quality * 100)
-                    # See https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#webp
-                    tile.save(tile_path, "WebP", lossless=True, quality=quality)
-                else:
-                    tile.save(tile_path)
+            tiles = list(self.tiles(level))
+            if tiles:
+                level_dir = _get_or_create_path(os.path.join(image_files, str(level)))
+                level_image = self.get_image(level)
+                for (column, row) in tiles:
+                    bounds = self.descriptor.get_tile_bounds(level, column, row)
+                    tile = level_image.crop(bounds)
+                    format = self.descriptor.tile_format
+                    tile_path = os.path.join(level_dir, "%s_%s.%s" % (column, row, format))
+                    if self.descriptor.tile_format == "jpg":
+                        jpeg_quality = int(self.image_quality * 100)
+                        tile.save(tile_path, "JPEG", quality=jpeg_quality)
+                    elif self.descriptor.tile_format == "webp":
+                        quality = int(self.image_quality * 100)
+                        # See https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#webp
+                        tile.save(tile_path, "WebP", lossless=True, quality=quality)
+                    else:
+                        tile.save(tile_path)
         # Create descriptor
         self.descriptor.save(destination)
 
