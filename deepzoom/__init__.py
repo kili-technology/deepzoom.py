@@ -67,6 +67,7 @@ RESIZE_FILTERS = {
 IMAGE_FORMATS = {
     "jpg": "jpg",
     "png": "png",
+    "webp": "webp",
 }
 
 
@@ -441,6 +442,10 @@ class ImageCreator(object):
                 if self.descriptor.tile_format == "jpg":
                     jpeg_quality = int(self.image_quality * 100)
                     tile.save(tile_path, "JPEG", quality=jpeg_quality)
+                elif self.descriptor.tile_format == "webp":
+                    quality = int(self.image_quality * 100)
+                    # See https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#webp
+                    tile.save(tile_path, "WebP", lossless=True, quality=quality)
                 else:
                     tile.save(tile_path)
         # Create descriptor
