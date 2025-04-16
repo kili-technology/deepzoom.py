@@ -450,7 +450,7 @@ class ImageCreator(object):
                     elif self.descriptor.tile_format == "webp":
                         quality = int(self.image_quality * 100)
                         # See https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#webp
-                        tile.save(tile_path, "WebP", lossless=True, quality=quality)
+                        tile.save(tile_path, "WebP", quality=quality)
                     else:
                         tile.save(tile_path)
         # Create descriptor
