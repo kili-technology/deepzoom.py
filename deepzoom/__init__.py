@@ -453,8 +453,12 @@ class ImageCreator(object):
                         tile.save(tile_path, "WebP", quality=quality)
                     else:
                         tile.save(tile_path)
+                    tile.close()
+                if level_image != self.image:
+                    level_image.close()
         # Create descriptor
         self.descriptor.save(destination)
+        self.image.close()
 
 
 class CollectionCreator(object):
